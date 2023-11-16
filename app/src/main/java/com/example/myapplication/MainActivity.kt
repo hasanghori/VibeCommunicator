@@ -30,12 +30,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private val list = mutableListOf<String>()
-    var file = File(
-        Environment.getExternalStorageDirectory(),
-        "/Users/hasan/Documents/College/MastersFall/accelerometer_data_android.csv"
-    )
-    var fileWriter: FileWriter? = null
-
+    
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,23 +43,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         val vibrateButton: Button = findViewById(R.id.button_vibrate)
 
-        /*
-        val effect = VibrationEffect.startComposition()
-            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, 0.5f)
-            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 0.5f)
-            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 1.0f, 100)
-            .compose()
-        */
-
-
-        //val mVibratePattern = longArrayOf(0, 100, 100, 300, 300, 500) // Timing pattern
-
-        //val mAmplitudes = intArrayOf(0, 50, 100, 150, 200, 255) // Amplitude pattern
-
-
-        val timings: LongArray = longArrayOf(600, 167, 167, 167, 167, 167, 167, 1000, 167, 167, 167, 167, 167, 167)
-        val amplitudes: IntArray = intArrayOf(255, 0, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 0, 255)
-
         val timings: LongArray = longArrayOf(600, 167, 167, 167, 167, 167, 167, 1000, 167, 167, 167, 167, 167, 167)
         val amplitudes: IntArray = intArrayOf(255, 0, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 0, 255)
 
@@ -75,18 +53,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeatIndex))
 
         }
-
-        /*
-        vibrateButton.setOnClickListener {
-            // Vibrate for 1000 milliseconds (1 second)
-            vibrator.vibrate(1000)
-            Thread.sleep(3 * 1000)
-            vibrator.vibrate(1000)
-            Thread.sleep(3 * 1000)
-            vibrator.vibrate(1000)
-        }
-        */
-
     }
 
     override fun onResume() {
@@ -113,33 +79,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         tvAccelerometerData.text = "X: $x\nY: $y\nZ: $z"
         list.add("$x, $y, $z")
         println(";$x, $y, $z;")
-        //val myData = arrayOf(x.toString(), y.toString(), z.toString())
-        //writeToCSV(myData);
-
-    }
-
-    fun writeToCSV(data: Array<String>) {
-        val file = File(Environment.getExternalStorageDirectory(), "myData.csv")
-        var fileWriter: FileWriter? = null
-        try {
-            fileWriter = FileWriter(file, true) // true to append, false to overwrite.
-            for (field in data) {
-                fileWriter.append(field)
-                fileWriter.append(",")
-            }
-            fileWriter.append("\n") // Newline at the end of the row.
-            fileWriter.flush()
-        } catch (e: IOException) {
-            // Handle exception
-        } finally {
-            if (fileWriter != null) {
-                try {
-                    fileWriter.close()
-                } catch (e: IOException) {
-                    // Handle exception
-                }
-            }
-        }
     }
 }
 
