@@ -6,12 +6,15 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.VibrationEffect
 import android.os.Vibrator
 import android.widget.Button
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -22,28 +25,58 @@ import java.io.FileWriter
 import java.io.IOException
 
 
-
-
-
 class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var vibrator: Vibrator
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private val list = mutableListOf<String>()
-    var file = File(Environment.getExternalStorageDirectory(), "/Users/hasan/Documents/College/MastersFall/accelerometer_data_android.csv")
+    var file = File(
+        Environment.getExternalStorageDirectory(),
+        "/Users/hasan/Documents/College/MastersFall/accelerometer_data_android.csv"
+    )
     var fileWriter: FileWriter? = null
 
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
         // Initialize the Vibrator service
         vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         val vibrateButton: Button = findViewById(R.id.button_vibrate)
 
+        /*
+        val effect = VibrationEffect.startComposition()
+            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, 0.5f)
+            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, 0.5f)
+            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 1.0f, 100)
+            .compose()
+        */
+
+
+        //val mVibratePattern = longArrayOf(0, 100, 100, 300, 300, 500) // Timing pattern
+
+        //val mAmplitudes = intArrayOf(0, 50, 100, 150, 200, 255) // Amplitude pattern
+
+
+        val timings: LongArray = longArrayOf(600, 167, 167, 167, 167, 167, 167, 1000, 167, 167, 167, 167, 167, 167)
+        val amplitudes: IntArray = intArrayOf(255, 0, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 0, 255)
+
+        val timings: LongArray = longArrayOf(600, 167, 167, 167, 167, 167, 167, 1000, 167, 167, 167, 167, 167, 167)
+        val amplitudes: IntArray = intArrayOf(255, 0, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 0, 255)
+
+        val repeatIndex = -1 // Do not repeat.
+
+        vibrateButton.setOnClickListener {
+            //HI
+            vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, repeatIndex))
+
+        }
+
+        /*
         vibrateButton.setOnClickListener {
             // Vibrate for 1000 milliseconds (1 second)
             vibrator.vibrate(1000)
@@ -52,12 +85,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             Thread.sleep(3 * 1000)
             vibrator.vibrate(1000)
         }
-
+        */
 
     }
+
     override fun onResume() {
         super.onResume()
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST )
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST)
     }
 
     override fun onPause() {
@@ -70,20 +104,20 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE) {
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
+        val x = event?.values?.get(0)
+        val y = event?.values?.get(1)
+        val z = event?.values?.get(2)
 
-            val tvAccelerometerData: TextView = findViewById(R.id.tvAccelerometerData)
+        val tvAccelerometerData: TextView = findViewById(R.id.tvAccelerometerData)
 
-            tvAccelerometerData.text = "X: $x\nY: $y\nZ: $z"
-            list.add("$x, $y, $z")
-            println(";$x, $y, $z;")
-            //val myData = arrayOf(x.toString(), y.toString(), z.toString())
-            //writeToCSV(myData);
-        }
+        tvAccelerometerData.text = "X: $x\nY: $y\nZ: $z"
+        list.add("$x, $y, $z")
+        println(";$x, $y, $z;")
+        //val myData = arrayOf(x.toString(), y.toString(), z.toString())
+        //writeToCSV(myData);
+
     }
+
     fun writeToCSV(data: Array<String>) {
         val file = File(Environment.getExternalStorageDirectory(), "myData.csv")
         var fileWriter: FileWriter? = null
