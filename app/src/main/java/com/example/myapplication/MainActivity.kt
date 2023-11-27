@@ -8,9 +8,13 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.os.VibrationEffect
 import android.os.Vibrator
+import android.view.View
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
@@ -21,8 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import org.apache.commons.math3.ml.clustering.*
 import org.apache.commons.math3.ml.distance.EuclideanDistance
-import java.io.File
-import java.io.FileWriter
+import java.util.Arrays
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -40,15 +43,34 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private val list = mutableListOf<String>()
-    private val buffer_1: MutableList<Double> = mutableListOf()
+    private var buffer_1: MutableList<Double> = mutableListOf()
     private val buffer_2: List<Double> = listOf()
 
-    var file = File(
-        Environment.getExternalStorageDirectory(),
-        "/Users/hasan/Documents/College/MastersFall/accelerometer_data_android.csv"
-    )
-    var fileWriter: FileWriter? = null
+    var gameActive = true
 
+    // Player representation
+    // 0 - X
+    // 1 - O
+    var activePlayer = 0
+
+    // State meanings:
+    //    0 - X
+    //    1 - O
+    //    2 - Null
+    var gameState = intArrayOf(2, 2, 2, 2, 2, 2, 2, 2, 2)
+
+    // put all win positions in a 2D array
+    var winPositions = arrayOf(
+        intArrayOf(0, 1, 2),
+        intArrayOf(3, 4, 5),
+        intArrayOf(6, 7, 8),
+        intArrayOf(0, 3, 6),
+        intArrayOf(1, 4, 7),
+        intArrayOf(2, 5, 8),
+        intArrayOf(0, 4, 8),
+        intArrayOf(2, 4, 6)
+    )
+    var counter = 0
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,7 +123,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             //vibrator.vibrate(VibrationEffect.createWaveform(agg_timings, agg_amplitudes, repeatIndex))
             val centers = processData()
             println(centers)
-
+            buffer_1 = mutableListOf()
         }
 
     }
@@ -201,6 +223,308 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         val min = dataPoints.minOrNull() ?: 0.0
         return max - min
     }
+
+    private fun numberAmplitudes(char: Char): IntArray {
+        return when (char) {
+            '0' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0)
+            '1' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0)
+            '2' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0)
+            '3' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0)
+            '4' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0)
+            '5' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0)
+            '6' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0)
+            '7' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0)
+            '8' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0, 128, 0, 128, 0)
+            '9' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0, 128, 0, 255, 0)
+            ':' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0, 128, 0)
+            ';' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0, 255, 0)
+            '<' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0, 128, 0)
+            '=' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0)
+            '>' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0)
+            '?' -> intArrayOf(128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
+            '@' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0)
+            'A' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 255, 0)
+            'B' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 255, 0, 128, 0)
+            'C' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 255, 0, 255, 0)
+            'D' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0)
+            'E' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 128, 0, 255, 0)
+            'F' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 255, 0, 128, 0)
+            'G' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 255, 0, 255, 0)
+            'H' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0)
+            'I' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0)
+            'J' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0)
+            'K' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0)
+            'L' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0)
+            'M' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0)
+            'N' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0)
+            'O' -> intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0)
+            'P' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0)
+            'Q' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0)
+            'R' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0)
+            'S' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0)
+            'T' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0)
+            'U' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0)
+            'V' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0)
+            'W' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0)
+            'X' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 128, 0)
+            'Y' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 255, 0)
+            'Z' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 128, 0)
+            '[' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0, 255, 0)
+            ']' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0)
+            '^' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0)
+            '_' -> intArrayOf(128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
+            '`' -> intArrayOf(128, 0, 255, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0)
+            '{' -> intArrayOf(128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0, 255, 0)
+            '|' -> intArrayOf(128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0, 128, 0)
+            '}' -> intArrayOf(128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0, 255, 0)
+            '~' -> intArrayOf(128, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 128, 0)
+            '!' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 255, 0)
+            '"' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 128, 0)
+            '#' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 255, 0, 255, 0)
+            '$' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0)
+            '%' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 255, 0)
+            '&' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 255, 0, 128, 0)
+            '(' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0)
+            ')' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0)
+            '*' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0)
+            '+' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0)
+            ',' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 128, 0)
+            '-' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 128, 0, 255, 0)
+            '.' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0, 128, 0)
+            '/' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 255, 0, 255, 0, 255, 0, 255, 0)
+            ' ' -> intArrayOf(128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0)
+            else -> intArrayOf()
+        }
+    }
+    /*
+    fun playerTapReciever(view) {
+        val img = view as ImageView
+        val tappedImage = img.tag.toString().toInt()
+        println(tappedImage)
+
+        // game reset function will be called
+        // if someone wins or the boxes are full
+        if (!gameActive) {
+            gameReset(view)
+            //Reset the counter
+            counter = 0
+        }
+
+        // if the tapped image is empty
+        if (gameState[tappedImage] === 2) {
+            // increase the counter
+            // after every tap
+            counter++
+
+            // check if its the last box
+            if (counter == 9) {
+                // reset the game
+                gameActive = false
+            }
+
+            // mark this position
+            gameState[tappedImage] = activePlayer
+
+            // this will give a motion
+            // effect to the image
+            img.translationY = -1000f
+
+            // change the active player
+            // from 0 to 1 or 1 to 0
+            if (activePlayer == 0) {
+                // set the image of x
+                img.setImageResource(R.drawable.x)
+                activePlayer = 1
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "O's Turn - Tap to play"
+            } else {
+                // set the image of o
+                img.setImageResource(R.drawable.o)
+                activePlayer = 0
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "X's Turn - Tap to play"
+            }
+            img.animate().translationYBy(1000f).duration = 300
+
+            // send message
+            val START: LongArray = longArrayOf(188, 188, 188, 188)
+            val START_amplitudes: IntArray = intArrayOf(255, 0, 128, 0)
+            vibrator.vibrate(VibrationEffect.createWaveform(START, START_amplitudes, -1))
+            val timings: LongArray =
+                longArrayOf(85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85)
+            val duration = timings.sum()
+
+            var amplitudes: IntArray = numberAmplitudes(tappedImage.toString().first())
+            println("SIZE")
+            println(tappedImage.toString().first())
+            println(amplitudes.size)
+            println(timings.size)
+            Handler(Looper.getMainLooper()).postDelayed({
+                amplitudes = numberAmplitudes(tappedImage.toString().first())
+
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+            }, duration)
+        }
+        var flag = 0
+        // Check if any player has won if counter is > 4 as min 5 taps are
+        // required to declare a winner
+        if (counter > 4) {
+            for (winPosition in winPositions) {
+                if (gameState[winPosition[0]] === gameState[winPosition[1]] && gameState[winPosition[1]] === gameState[winPosition[2]] && gameState[winPosition[0]] !== 2) {
+                    flag = 1
+
+                    // Somebody has won! - Find out who!
+                    var winnerStr: String
+
+                    // game reset function be called
+                    gameActive = false
+                    winnerStr = if (gameState[winPosition[0]] === 0) {
+                        "X has won"
+                    } else {
+                        "O has won"
+                    }
+                    // Update the status bar for winner announcement
+                    val status = findViewById<TextView>(R.id.status)
+                    status.text = winnerStr
+                }
+            }
+            // set the status if the match draw
+            if (counter == 9 && flag == 0) {
+                val status = findViewById<TextView>(R.id.status)
+                status.text = "Match Draw"
+            }
+        }
+    }
+    */
+
+
+    // this function will be called every time a
+    // players tap in an empty box of the grid
+    fun playerTap(view: View) {
+        val img = view as ImageView
+        val tappedImage = img.tag.toString().toInt()
+        println(tappedImage)
+
+        // game reset function will be called
+        // if someone wins or the boxes are full
+        if (!gameActive) {
+            gameReset(view)
+            //Reset the counter
+            counter = 0
+        }
+
+        // if the tapped image is empty
+        if (gameState[tappedImage] === 2) {
+            // increase the counter
+            // after every tap
+            counter++
+
+            // check if its the last box
+            if (counter == 9) {
+                // reset the game
+                gameActive = false
+            }
+
+            // mark this position
+            gameState[tappedImage] = activePlayer
+
+            // this will give a motion
+            // effect to the image
+            img.translationY = -1000f
+
+            // change the active player
+            // from 0 to 1 or 1 to 0
+            if (activePlayer == 0) {
+                // set the image of x
+                img.setImageResource(R.drawable.x)
+                activePlayer = 1
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "O's Turn - Tap to play"
+            } else {
+                // set the image of o
+                img.setImageResource(R.drawable.o)
+                activePlayer = 0
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "X's Turn - Tap to play"
+            }
+            img.animate().translationYBy(1000f).duration = 300
+
+            // send message
+            val START: LongArray = longArrayOf(188, 188, 188, 188)
+            val START_amplitudes: IntArray = intArrayOf(255, 0, 128, 0)
+            vibrator.vibrate(VibrationEffect.createWaveform(START, START_amplitudes, -1))
+            val timings: LongArray =
+                longArrayOf(85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85)
+            val duration = timings.sum()
+
+            var amplitudes: IntArray = numberAmplitudes(tappedImage.toString().first())
+            println("SIZE")
+            println(tappedImage.toString().first())
+            println(amplitudes.size)
+            println(timings.size)
+            Handler(Looper.getMainLooper()).postDelayed({
+                amplitudes = numberAmplitudes(tappedImage.toString().first())
+
+                vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+            }, duration)
+        }
+        var flag = 0
+        // Check if any player has won if counter is > 4 as min 5 taps are
+        // required to declare a winner
+        if (counter > 4) {
+            for (winPosition in winPositions) {
+                if (gameState[winPosition[0]] === gameState[winPosition[1]] && gameState[winPosition[1]] === gameState[winPosition[2]] && gameState[winPosition[0]] !== 2) {
+                    flag = 1
+
+                    // Somebody has won! - Find out who!
+                    var winnerStr: String
+
+                    // game reset function be called
+                    gameActive = false
+                    winnerStr = if (gameState[winPosition[0]] === 0) {
+                        "X has won"
+                    } else {
+                        "O has won"
+                    }
+                    // Update the status bar for winner announcement
+                    val status = findViewById<TextView>(R.id.status)
+                    status.text = winnerStr
+                }
+            }
+            // set the status if the match draw
+            if (counter == 9 && flag == 0) {
+                val status = findViewById<TextView>(R.id.status)
+                status.text = "Match Draw"
+            }
+        }
+    }
+
+    fun gameReset(view: View?) {
+        gameActive = true
+        activePlayer = 0
+        //set all position to Null
+        Arrays.fill(gameState, 2)
+        // remove all the images from the boxes inside the grid
+        (findViewById<View>(R.id.imageView0) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView1) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView2) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView3) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView4) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView5) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView6) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView7) as ImageView).setImageResource(0)
+        (findViewById<View>(R.id.imageView8) as ImageView).setImageResource(0)
+        val status = findViewById<TextView>(R.id.status)
+        status.text = "X's Turn - Tap to play"
+    }
     override fun onResume() {
         super.onResume()
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST)
@@ -220,11 +544,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         val y = event?.values?.get(1)?.toDouble()?: 0.0
         val z = event?.values?.get(2)?.toDouble()?: 0.0
 
-        val tvAccelerometerData: TextView = findViewById(R.id.tvAccelerometerData)
 
         val data = calculateMagnitude(x, y, z)
 
-        tvAccelerometerData.text = "X: $x\nY: $y\nZ: $z"
         buffer_1.add(data)
         //println(";$x, $y, $z;")
         //val myData = arrayOf(x.toString(), y.toString(), z.toString())
