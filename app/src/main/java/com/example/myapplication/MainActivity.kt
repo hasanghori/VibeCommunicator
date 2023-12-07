@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         //H
         val H_timings: LongArray = longArrayOf(84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84)
         val H_amplitudes: IntArray = intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 128, 0)
-
+        
        // I
         val I_timings: LongArray = longArrayOf(84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84)
         val I_amplitudes: IntArray = intArrayOf(128, 0, 255, 0, 128, 0, 128, 0, 255, 0, 128, 0, 128, 0, 255, 0)
@@ -116,7 +116,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         val agg_timings: LongArray = longArrayOf(188, 188, 188, 188, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84)
         val agg_amplitudes: IntArray = intArrayOf(255, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 255, 0, 100, 0, 100, 0, 100, 0, 100, 0, 255, 0)
 
-        val repeatIndex = -1 // Do not repeat.
+            // Calculate the total duration of the first vibration pattern
+            val firstPatternDuration = START.sum()
+            // val timings: LongArray = longArrayOf(600, 167, 167, 167, 167, 167, 167, 1000, 167, 167, 167, 167, 167, 167)
 
         vibrateButton.setOnClickListener {
             //HI!
@@ -218,12 +220,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                 old_val = max(new_val, old_val)
             }
 
+                // Calculate the total duration of the second vibration pattern
+                val secondPatternDuration = timings.sum()
 
-
+                // Handler to delay the execution of the third vibration pattern
+                Handler(Looper.getMainLooper()).postDelayed({
+                    vibrator.vibrate(VibrationEffect.createWaveform(END, END_amplitudes, -1))
+                }, secondPatternDuration)
+            }, firstPatternDuration)
         }
         val ascii: String = chunkAndConvertToIntegers(word)
         return ascii
     }
+
 
 
     fun binaryDigitsToAscii(binaryDigits: List<Int>): Char {
@@ -630,6 +639,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         val status = findViewById<TextView>(R.id.status)
         status.text = "X's Turn - Tap to play"
     }
+
     override fun onResume() {
         super.onResume()
         sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST)
