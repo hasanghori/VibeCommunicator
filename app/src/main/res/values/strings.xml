@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="title">Tic Tac Vibe</string>
+    <string name="listen">Start</string>
+    <string name="stop">End</string>
+    <string name="image_id">Unique ID</string>
 </resources>
