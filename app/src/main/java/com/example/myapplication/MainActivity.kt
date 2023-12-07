@@ -121,8 +121,39 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         vibrateButton.setOnClickListener {
             //HI!
             //vibrator.vibrate(VibrationEffect.createWaveform(agg_timings, agg_amplitudes, repeatIndex))
-            val centers = processData()
-            println(centers)
+            val position = processData()
+            if (position == "0") {
+                val tappedImageView = (findViewById<View>(R.id.imageView0) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "1") {
+                val tappedImageView = (findViewById<View>(R.id.imageView1) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "2") {
+                val tappedImageView = (findViewById<View>(R.id.imageView2) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "3") {
+                val tappedImageView = (findViewById<View>(R.id.imageView3) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "4") {
+                val tappedImageView = (findViewById<View>(R.id.imageView4) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "5") {
+                val tappedImageView = (findViewById<View>(R.id.imageView5) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "6") {
+                val tappedImageView = (findViewById<View>(R.id.imageView6) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "7") {
+                val tappedImageView = (findViewById<View>(R.id.imageView7) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else if (position == "8") {
+                val tappedImageView = (findViewById<View>(R.id.imageView8) as ImageView)
+                opposingPlayerTap(tappedImageView)
+            } else {
+                println("Could not determine which position the opposing player tapped")
+            }
+            print("found at position: ")
+            println(position)
             buffer_1 = mutableListOf()
         }
 
@@ -139,8 +170,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         var new_val: Int = -2
         var word = mutableListOf<Int>()
 
-        println("Window_Size: ")
-        println(numWindows)
+
         var clusterResults: List<CentroidCluster<OneDimensionalPoint>> = listOf()
         var sortedClusterResults: List<CentroidCluster<OneDimensionalPoint>> = listOf()
         for (i in 0 until numWindows) {
@@ -149,7 +179,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             val windowData = buffer_1.subList(start, end)
             val amplitude = calculateAmplitude(windowData)
 
-            if ((amplitude > .3 && !valuesSet) || adding){
+            if ((amplitude > .5 && !valuesSet) || adding){
                 adding = true
                 collectWindows.add(OneDimensionalPoint(amplitude))
                 if (collectWindows.size >= 45){
@@ -158,13 +188,13 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     val clusterer = KMeansPlusPlusClusterer<OneDimensionalPoint>(3, 1000, EuclideanDistance())
                     clusterResults = clusterer.cluster(collectWindows)
                     sortedClusterResults = clusterResults.sortedBy  { it.center.point[0] }
-
+/*
                     println(i)
                     println(sortedClusterResults.joinToString(separator = ", ", prefix = "[", postfix = "]") { cluster ->
                         // Define how each CentroidCluster<OneDimensionalPoint> should be converted to String
                         // For example, this could be a summary of the cluster, like its centroid or size
                         "Cluster with centroid ${cluster.center} and size ${cluster.points.size}"
-                    })
+                    }) */
                     adding = false
 
 
@@ -173,13 +203,12 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             } else if (!valuesSet){
                 continue
             }
-            println(amplitude)
+
             val nearestClusterIndex = sortedClusterResults.indices.minByOrNull { index ->
                 calculateDistance(amplitude, sortedClusterResults[index].center)
             } ?: -1
 
             new_val = nearestClusterIndex - 1
-            println(new_val)
             if (old_val != new_val && new_val == -1){
                 if (old_val != -2) {
                     word.add(old_val)
@@ -192,7 +221,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 
         }
-        print(word)
         val ascii: String = chunkAndConvertToIntegers(word)
         return ascii
     }
@@ -400,14 +428,94 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
     }
     */
+    fun opposingPlayerTap(view: View) {
+        val img = view as ImageView
+        val tappedImage = img.tag.toString().toInt()
 
+        // game reset function will be called
+        // if someone wins or the boxes are full
+        if (!gameActive) {
+            gameReset(view)
+            //Reset the counter
+            counter = 0
+        }
+
+        // if the tapped image is empty
+        if (gameState[tappedImage] === 2) {
+            // increase the counter
+            // after every tap
+            counter++
+
+            // check if its the last box
+            if (counter == 9) {
+                // reset the game
+                gameActive = false
+            }
+
+            // mark this position
+            gameState[tappedImage] = activePlayer
+
+            // this will give a motion
+            // effect to the image
+            img.translationY = -1000f
+
+            // change the active player
+            // from 0 to 1 or 1 to 0
+            if (activePlayer == 0) {
+                // set the image of x
+                img.setImageResource(R.drawable.x)
+                activePlayer = 1
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "O's Turn - Tap to play"
+            } else {
+                // set the image of o
+                img.setImageResource(R.drawable.o)
+                activePlayer = 0
+                val status = findViewById<TextView>(R.id.status)
+
+                // change the status
+                status.text = "X's Turn - Tap to play"
+            }
+            img.animate().translationYBy(1000f).duration = 300
+        }
+        var flag = 0
+        // Check if any player has won if counter is > 4 as min 5 taps are
+        // required to declare a winner
+        if (counter > 4) {
+            for (winPosition in winPositions) {
+                if (gameState[winPosition[0]] === gameState[winPosition[1]] && gameState[winPosition[1]] === gameState[winPosition[2]] && gameState[winPosition[0]] !== 2) {
+                    flag = 1
+
+                    // Somebody has won! - Find out who!
+                    var winnerStr: String
+
+                    // game reset function be called
+                    gameActive = false
+                    winnerStr = if (gameState[winPosition[0]] === 0) {
+                        "X has won"
+                    } else {
+                        "O has won"
+                    }
+                    // Update the status bar for winner announcement
+                    val status = findViewById<TextView>(R.id.status)
+                    status.text = winnerStr
+                }
+            }
+            // set the status if the match draw
+            if (counter == 9 && flag == 0) {
+                val status = findViewById<TextView>(R.id.status)
+                status.text = "Match Draw"
+            }
+        }
+    }
 
     // this function will be called every time a
     // players tap in an empty box of the grid
     fun playerTap(view: View) {
         val img = view as ImageView
         val tappedImage = img.tag.toString().toInt()
-        println(tappedImage)
 
         // game reset function will be called
         // if someone wins or the boxes are full
@@ -466,10 +574,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
             val duration = timings.sum()
 
             var amplitudes: IntArray = numberAmplitudes(tappedImage.toString().first())
-            println("SIZE")
-            println(tappedImage.toString().first())
-            println(amplitudes.size)
-            println(timings.size)
+
             Handler(Looper.getMainLooper()).postDelayed({
                 amplitudes = numberAmplitudes(tappedImage.toString().first())
 
